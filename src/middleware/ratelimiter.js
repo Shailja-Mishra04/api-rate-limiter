@@ -30,6 +30,14 @@ const slidingWindowRateLimiter = async (req, res, next) => {
     const apiKeyId = keyRows[0].key_id;
     const route = '/api' + req.path;
     const method = req.method;
+    // Fetch user details and attach to request
+const [userRows] = await connection.query(
+  `SELECT u.name, u.email FROM users u 
+   JOIN api_keys ak ON u.user_id = ak.user_id 
+   WHERE ak.key_id = ?`,
+  [apiKeyId]
+);
+req.user = userRows[0];
 
     // 2. Find endpoint
     const [endpointRows] = await connection.query(

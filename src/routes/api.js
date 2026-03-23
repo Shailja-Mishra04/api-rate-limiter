@@ -5,32 +5,30 @@ const rateLimiter = require('../middleware/ratelimiter');
 // Apply rate limiter to all routes
 router.use(rateLimiter);
 
-// Mock login endpoint
 router.post('/login', (req, res) => {
   res.json({
     success: true,
-    message: 'Login successful!',
-    user: 'Shailja',
+    message: `Welcome back ${req.user.name}!`,
+    user: req.user.name,
+    email: req.user.email,
     token: 'mock-jwt-token-xyz',
   });
 });
 
-// Mock transfer endpoint
 router.post('/transfer', (req, res) => {
   res.json({
     success: true,
-    message: 'Transfer successful!',
+    message: `Transfer initiated by ${req.user.name}`,
     amount: req.body.amount || 1000,
     from: 'ACC001',
     to: 'ACC002',
   });
 });
 
-// Mock balance endpoint
 router.get('/balance', (req, res) => {
   res.json({
     success: true,
-    message: 'Balance fetched!',
+    message: `Balance for ${req.user.name}`,
     balance: 50000,
     currency: 'INR',
   });

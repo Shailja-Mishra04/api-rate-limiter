@@ -60,3 +60,16 @@ CREATE TABLE rate_limit_violations (
     FOREIGN KEY (api_key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
     FOREIGN KEY (endpoint_id) REFERENCES endpoints(endpoint_id) ON DELETE CASCADE
 );
+USE rate_limiter_db;
+
+-- Add more users
+INSERT INTO users (name, email) VALUES 
+('Rahul', 'rahul@test.com'),
+('Priya', 'priya@test.com'),
+('Arjun', 'arjun@test.com');
+
+-- Add API keys for each
+INSERT INTO api_keys (user_id, api_key) VALUES 
+(3, 'test-key-rahul-003'),
+(4, 'test-key-priya-004'),
+(5, 'test-key-arjun-005');
