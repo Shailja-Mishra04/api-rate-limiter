@@ -28,7 +28,7 @@ const slidingWindowRateLimiter = async (req, res, next) => {
     }
 
     const apiKeyId = keyRows[0].key_id;
-    const route = req.path;
+    const route = '/api' + req.path;
     const method = req.method;
 
     // 2. Find endpoint
@@ -56,7 +56,7 @@ const slidingWindowRateLimiter = async (req, res, next) => {
     }
 
     const { max_requests, window_seconds } = ruleRows[0];
-    const windowStart = new Date(Date.now() - window_seconds * 1000);
+    const windowStart = new Date(Date.now() - window_seconds * 1000).toISOString().slice(0, 23).replace('T', ' ');
 
     // 4. Begin transaction — prevents race conditions
     await connection.beginTransaction();
@@ -69,21 +69,24 @@ const slidingWindowRateLimiter = async (req, res, next) => {
       [apiKeyId, endpointId]
     );
 
-    // 6. Delete old logs outside window
-    await connection.query(
-      `DELETE FROM request_logs 
-       WHERE api_key_id = ? AND endpoint_id = ? AND request_timestamp < ?`,
-      [apiKeyId, endpointId, windowStart]
-    );
+   // 6. Delete old logs outside window
+const [deleteResult] = await connection.query(
+  `DELETE FROM request_logs 
+   WHERE api_key_id = ? AND endpoint_id = ? 
+   AND request_timestamp < TIMESTAMPADD(SECOND, ?, NOW(3))`,
+  [apiKeyId, endpointId, -window_seconds]
+);
+console.log('Rows deleted:', deleteResult.affectedRows);
 
-    // 7. Count requests in current window
-    const [countRows] = await connection.query(
-      `SELECT COUNT(*) as request_count FROM request_logs 
-       WHERE api_key_id = ? AND endpoint_id = ?`,
-      [apiKeyId, endpointId]
-    );
-
-    const requestCount = countRows[0].request_count;
+// 7. Count requests in current window
+const [countRows] = await connection.query(
+  `SELECT COUNT(*) as request_count FROM request_logs 
+   WHERE api_key_id = ? AND endpoint_id = ?
+   AND request_timestamp >= TIMESTAMPADD(SECOND, ?, NOW(3))`,
+  [apiKeyId, endpointId, -window_seconds]
+);
+const requestCount = countRows[0].request_count;
+console.log('Request Count:', requestCount);
 
     // 8. Check if limit exceeded
     if (requestCount >= max_requests) {
