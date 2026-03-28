@@ -1,10 +1,12 @@
 const express = require('express');
 require('dotenv').config();
 const db = require('./config/db');
+const redis = require('./config/redis');
 const apiRoutes = require('./routes/api');
 
 const app = express();
 app.use(express.json());
+app.use(express.static(require('path').join(__dirname, '../')));
 
 const PORT = process.env.PORT || 3000;
 

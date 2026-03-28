@@ -62,14 +62,26 @@ CREATE TABLE rate_limit_violations (
 );
 USE rate_limiter_db;
 
--- Add more users
-INSERT INTO users (name, email) VALUES 
-('Rahul', 'rahul@test.com'),
-('Priya', 'priya@test.com'),
-('Arjun', 'arjun@test.com');
-
--- Add API keys for each
-INSERT INTO api_keys (user_id, api_key) VALUES 
-(3, 'test-key-rahul-003'),
-(4, 'test-key-priya-004'),
-(5, 'test-key-arjun-005');
+-- Hides api_key (sensitive), shows only useful monitoring info
+CREATE VIEW active_request_summary AS
+SELECT 
+    u.name AS user_name,
+    u.email,
+    e.route,
+    e.method,
+    COUNT(rl.log_id) AS requests_in_window,
+    r.max_requests,
+    r.window_seconds,
+    (r.max_requests - COUNT(rl.log_id)) AS remaining_requests
+FROM request_logs rl
+JOIN api_keys ak ON rl.api_key_id = ak.key_id
+JOIN users u ON ak.user_id = u.user_id
+JOIN endpoints e ON rl.endpoint_id = e.endpoint_id
+JOIN rate_limit_rules r ON e.endpoint_id = r.endpoint_id
+WHERE rl.request_timestamp >= TIMESTAMPADD(SECOND, -r.window_seconds, NOW(3))
+GROUP BY u.name, u.email, e.route, e.method, r.max_requests, r.window_seconds;
+ALTER TABLE request_logs 
+ADD COLUMN served_by VARCHAR(10) DEFAULT 'mysql';
+-- Seed Data (run after schema creation)
+-- INSERT INTO users (name, email) VALUES ('Shailja', 'shailja@test.com')...
+-- See README for full seed data instructions

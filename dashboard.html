@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Rate Limiter Dashboard</title>
+  <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  /* Slight grey background for better contrast with white cards */
+  background: #f1f5f9; 
+  color: #1e293b;
+  padding: 20px;
+}
+
+/* Header & Controls Alignment */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Vertical alignment */
+  margin-bottom: 24px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+h1 {
+  color: #6366f1; /* Vibrant Indigo */
+  font-size: 22px;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100%{opacity:1}
+  50%{opacity:0.4}
+}
+
+/* Buttons */
+.btn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn:hover { background: #4f46e5; transform: translateY(-1px); }
+
+.btn.secondary {
+  background: #ffffff;
+  color: #6366f1;
+  border: 1px solid #e2e8f0;
+}
+
+/* Layout - Strictly Original */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* Cards - Vibrant Strategy */
+.card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Top Stats: Solid Pastel Tints */
+.grid-3 .card:nth-child(1) { background: #eff6ff; border-color: #dbeafe; } /* Blue */
+.grid-3 .card:nth-child(2) { background: #fff1f2; border-color: #ffe4e6; } /* Pink */
+.grid-3 .card:nth-child(3) { background: #f0fdf4; border-color: #dcfce7; } /* Mint */
+
+/* Middle Content: Pastel Gradients */
+.grid .card:nth-child(1) { background: linear-gradient(135deg, #ffffff, #f5f3ff); } /* Violet Gradient */
+.grid .card:nth-child(2) { background: linear-gradient(135deg, #ffffff, #fff7ed); } /* Peach Gradient */
+
+/* Info Cards: High-Contrast White */
+.grid .card:nth-child(3), .grid .card:nth-child(4) { background: #ffffff; }
+
+.card h2 {
+  color: #64748b;
+  font-size: 11px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+.full { grid-column: 1 / -1; margin-bottom: 16px; }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th {
+  background: #f8fafc;
+  color: #64748b;
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 2px solid #f1f5f9;
+  font-weight: 600;
+}
+
+td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+/* Row Hover for interactivity */
+tr:hover td { background: #fdf2f8; } /* Pastel pink hover */
+
+/* Semantic Colors */
+.green { color: #10b981; font-weight: 700; }
+.yellow { color: #f59e0b; font-weight: 700; }
+.red { color: #ef4444; font-weight: 700; }
+
+/* Progress Bars (Green -> Yellow -> Red) */
+.bar-wrap {
+  background: #e2e8f0;
+  border-radius: 10px;
+  height: 6px;
+  margin-top: 4px;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.bar.ok { background: #10b981; }
+.bar.warn { background: #f59e0b; }
+.bar.danger { background: #ef4444; }
+
+/* Stats */
+.stat-box { text-align: center; }
+.stat-num {
+  font-size: 28px;
+  color: #1e293b;
+  font-weight: 800;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Tags */
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tag.redis { background: #c084fc; color: white; }
+.tag.mysql { background: #60a5fa; color: white; }
+.tag.ok { background: #d1fae5; color: #065f46; }
+.tag.blocked { background: #fee2e2; color: #991b1b; }
+
+/* Info rows */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Redis indicator */
+.redis-status { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.on { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+.dot.off { background: #f43f5e; }
+  </style>
+</head>
+<body>
+
+<div class="header-row">
+  <div>
+    <h1>API Rate Limiter</h1>
+    <div class="subtitle"><span class="status-dot"></span>Live Dashboard — MySQL + Redis Hybrid — Auto refresh every 5s</div>
+  </div>
+  <div class="controls">
+    <div class="redis-status" id="redis-indicator">
+      <div class="dot off" id="redis-dot"></div>
+      <span id="redis-label">Redis: checking...</span>
+    </div>
+    <button class="btn secondary" onclick="loadData()">Refresh</button>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid-3">
+  <div class="card">
+    <h2>Total Requests</h2>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-label">in current window</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Total Violations</h2>
+    <div class="stat-box">
+      <div class="stat-num red" id="stat-violations">—</div>
+      <div class="stat-label">blocked requests</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Active Users</h2>
+    <div class="stat-box">
+      <div class="stat-num yellow" id="stat-users">—</div>
+      <div class="stat-label">making requests</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Grid -->
+<div class="grid">
+  <div class="card">
+    <h2>Active Request Window</h2>
+    <div id="active-requests"><div class="empty">No active requests</div></div>
+  </div>
+  <div class="card">
+    <h2>Violations Log</h2>
+    <div id="violations"><div class="empty">No violations recorded</div></div>
+  </div>
+</div>
+
+<!-- DB Stats + Redis -->
+<div class="grid">
+  <div class="card">
+    <h2>Database Stats</h2>
+    <div id="db-stats"><div class="empty">Loading...</div></div>
+  </div>
+  <div class="card">
+    <h2>Redis Cache Info</h2>
+    <div id="redis-info"><div class="empty">Loading...</div></div>
+  </div>
+</div>
+
+<!-- Recent Logs -->
+<div class="card full" style="margin-bottom:16px">
+  <h2>Recent Request Logs</h2>
+  <div id="recent-logs"><div class="empty">No recent requests</div></div>
+</div>
+
+<script>
+  async function loadData() {
+    try {
+      const res = await fetch('http://localhost:3000/api/status');
+      const data = await res.json();
+
+      // Redis indicator
+      const dot = document.getElementById('redis-dot');
+      const label = document.getElementById('redis-label');
+      if (data.redis_enabled) {
+        dot.className = 'dot on';
+        label.textContent = 'Redis: ON';
+      } else {
+        dot.className = 'dot off';
+        label.textContent = 'Redis: OFF (MySQL only)';
+      }
+
+      // Stats
+      const totalReqs = data.active_requests.reduce((s, r) => s + r.requests_in_window, 0);
+      const totalViols = data.violations.reduce((s, v) => s + v.total_violations, 0);
+      document.getElementById('stat-total').textContent = totalReqs;
+      document.getElementById('stat-violations').textContent = totalViols;
+      document.getElementById('stat-users').textContent = new Set(data.active_requests.map(r => r.user_name)).size;
+
+      // Active Requests
+      const activeEl = document.getElementById('active-requests');
+      if (!data.active_requests.length) {
+        activeEl.innerHTML = '<div class="empty">No active requests in current window</div>';
+      } else {
+        activeEl.innerHTML = `<table>
+          <tr><th>User</th><th>Route</th><th>Used / Limit</th><th>Remaining</th><th>Usage</th></tr>
+          ${data.active_requests.map(r => {
+            const pct = (r.requests_in_window / r.max_requests) * 100;
+            const cls = pct >= 100 ? 'danger' : pct >= 80 ? 'warn' : 'ok';
+            const textCls = pct >= 100 ? 'red' : pct >= 80 ? 'yellow' : 'green';
+            return `<tr>
+              <td class="${textCls}">${r.user_name}</td>
+              <td>${r.route}</td>
+              <td>${r.requests_in_window} / ${r.max_requests}</td>
+              <td>${r.remaining_requests}</td>
+              <td style="min-width:80px">
+                <div class="bar-wrap"><div class="bar ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </table>`;
+      }
+
+      // Violations
+      const violEl = document.getElementById('violations');
+      if (!data.violations.length) {
+        violEl.innerHTML = '<div class="empty">No violations recorded</div>';
+      } else {
+        violEl.innerHTML = `<table>
+          <tr><th>User</th><th>Route</th><th>Count</th></tr>
+          ${data.violations.map(v => `<tr>
+            <td class="red">${v.name}</td>
+            <td>${v.route}</td>
+            <td class="red">${v.total_violations}</td>
+          </tr>`).join('')}
+        </table>`;
+      }
+
+      // DB Stats
+      const statsEl = document.getElementById('db-stats');
+      if (data.db_stats) {
+        statsEl.innerHTML = `
+          <div class="info-row">
+            <span class="info-key">Total Request Logs</span>
+            <span class="info-val">${data.db_stats.total_logs}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Total Violations</span>
+            <span class="info-val red">${data.db_stats.total_violations}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Registered Users</span>
+            <span class="info-val">${data.db_stats.total_users}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Active API Keys</span>
+            <span class="info-val green">${data.db_stats.active_keys}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Protected Endpoints</span>
+            <span class="info-val">${data.db_stats.total_endpoints}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Transaction Isolation</span>
+            <span class="info-val">READ COMMITTED</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Index</span>
+            <span class="info-val">idx_api_key_endpoint_timestamp</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Schema</span>
+            <span class="info-val">3NF — 6 tables + 1 view</span>
+          </div>`;
+      }
+
+      // Redis cache info
+      const redisEl = document.getElementById('redis-info');
+      if (!data.redis_keys || !data.redis_keys.length) {
+        redisEl.innerHTML = '<div class="empty">No active Redis cache keys</div>';
+      } else {
+        redisEl.innerHTML = `<table>
+          <tr><th>Cache Key</th><th>Count</th><th>TTL</th></tr>
+          ${data.redis_keys.map(k => `<tr>
+            <td class="gray">${k.key}</td>
+            <td class="yellow">${k.count}</td>
+            <td>${k.ttl}s</td>
+          </tr>`).join('')}
+        </table>`;
+      }
+
+      // Recent logs
+      const logsEl = document.getElementById('recent-logs');
+      if (!data.recent_logs.length) {
+        logsEl.innerHTML = '<div class="empty">No recent requests</div>';
+      } else {
+        logsEl.innerHTML = `<table>
+          <tr><th>User</th><th>Route</th><th>Method</th><th>Served By</th><th>Timestamp</th></tr>
+          ${data.recent_logs.map(l => `<tr>
+            <td class="green">${l.name}</td>
+            <td>${l.route}</td>
+            <td>${l.method}</td>
+            <td><span class="tag ${l.served_by || 'mysql'}">${l.served_by || 'mysql'}</span></td>
+            <td class="gray">${new Date(l.request_timestamp).toLocaleString()}</td>
+          </tr>`).join('')}
+        </table>`;
+      }
+
+    } catch (err) {
+      console.error('Dashboard error:', err);
+    }
+  }
+
+  loadData();
+  setInterval(loadData, 5000);
+</script>
+</body>
+</html>
