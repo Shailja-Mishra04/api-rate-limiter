@@ -13,7 +13,7 @@ const pool = mysql.createPool({
     ca: fs.readFileSync(path.join(__dirname, '../../ca.pem')),
   },
   waitForConnections: true,
-  connectionLimit: 20,
+  connectionLimit: 10,
   queueLimit: 0,
 });
 
